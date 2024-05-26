@@ -1,0 +1,883 @@
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.*;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+public class MyFrame extends JFrame {
+    private JPanel panel;
+    private JTextField usernameField,emailField,titleField,authorField,ISBNField,yearField,numberField,searchField;
+    private JPasswordField passwordField,passwordFieldAgain;
+    private CardLayout cardLayout;
+    private ImageIcon backgroundImage;
+    private static final String ISBN10_REGEX = "^(?:[0-9]{9}X|[0-9]{10})$";
+    private static final String ISBN13_REGEX = "^(?:978|979)[0-9]{10}$";
+    private static final String EMAIL_REGEX = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$";
+    private static final String USER_FILE_PATH = "C:\\Users\\34975\\IdeaProjects\\project UI\\info.txt";
+    //用户（会员）的账号以及密码、电子邮箱记录路径
+    private static final String ADMIN_FILE_PATH = "C:\\Users\\34975\\IdeaProjects\\project UI\\adminInfo.txt";
+    //管理员的记录路径
+    private static Map<String, String> users = new HashMap<>(); // 模拟用户数据存储
+
+
+    public MyFrame() {
+        cardLayout = new CardLayout();
+        panel = new JPanel(cardLayout);
+        getContentPane().add(panel);
+
+        backgroundImage = new ImageIcon("C:\\Users\\34975\\IdeaProjects\\project UI\\src\\w6mrLE5LX3.jpg");
+
+        panel.add(createPage1(), "page1");
+        panel.add(createPage2(), "page2");
+        panel.add(createPage3(), "page3");
+        panel.add(createPage4(), "page4");
+        panel.add(createPage5(), "page5");
+        panel.add(createPage6(), "page6");
+        panel.add(createPage7(), "page7");
+        panel.add(createPage8(), "page8");
+        panel.add(createPage9(), "page9");
+        panel.add(createPage10(), "page10");
+        panel.add(createPage11(), "page11");
+        panel.add(createPage12(), "page12");
+
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setExtendedState(JFrame.MAXIMIZED_BOTH);
+        setVisible(true);
+    }
+
+    private JPanel createPage1() {
+        JPanel page = new BackgroundPanel();
+        page.setLayout(new GridBagLayout());
+        GridBagConstraints gbc = createGbc();
+
+        addComponent(page, createButton1("登陆", e -> cardLayout.show(panel, "page2")), gbc, 0, 1, 1);
+        addComponent(page, createButton1("注册", e -> cardLayout.show(panel, "page3")), gbc, 0, 2, 1);
+        addComponent(page, createButton("退出", e -> System.exit(0), new Font("Microsoft YaHei", Font.PLAIN, 15), new Dimension(100, 40)), gbc, 0, 5, 1);
+
+        return page;
+    }
+
+    private JPanel createPage2() {  //登录界面
+        JPanel page = new BackgroundPanel();
+        page.setLayout(new GridBagLayout());
+        GridBagConstraints gbc = createGbc();
+
+        addComponent(page, createLabel("用户名:"), gbc, 0, 0);
+        gbc.gridx = 1; gbc.gridy = 0;
+        JTextField usernameField = new JTextField(20);
+        page.add(usernameField, gbc);
+
+        addComponent(page, createLabel("密码："), gbc, 0, 1);
+        gbc.gridx = 1; gbc.gridy = 1;
+        JPasswordField passwordField = new JPasswordField(20);
+        page.add(passwordField, gbc);
+
+        addComponent(page, createButton("会员登录", e -> {
+            String userName = usernameField.getText();
+            String passWord = new String(passwordField.getPassword());
+            try {
+                if (validateUser(USER_FILE_PATH, userName, passWord)) {
+                    cardLayout.show(panel, "page5");
+                } else {
+                    JOptionPane.showMessageDialog(this, "用户名或密码错误!");
+                }
+            } catch (FileNotFoundException ex) {
+                JOptionPane.showMessageDialog(this, "文件未找到: " + ex.getMessage());
+            }
+        }), gbc, 0, 2);
+
+        addComponent(page, createButton("管理员登录", e -> {
+            String userName = usernameField.getText();
+            String passWord = new String(passwordField.getPassword());
+            try {
+                if (validateUser(ADMIN_FILE_PATH, userName, passWord)) {
+                    cardLayout.show(panel, "page4");
+                } else {
+                    JOptionPane.showMessageDialog(this, "用户名或密码错误!");
+                }
+            } catch (FileNotFoundException ex) {
+                JOptionPane.showMessageDialog(this, "文件未找到: " + ex.getMessage());
+            }
+        }), gbc, 0, 4);
+
+        addComponent(page, createButton("退出", e -> System.exit(0)), gbc, 1, 2);
+        return page;
+    }
+
+    private JPanel createPage3() {   //注册界面
+        JPanel page = new BackgroundPanel();
+        page.setLayout(new GridBagLayout());
+        GridBagConstraints gbc = createGbc();
+
+        addComponent(page, createLabel("用户名:"), gbc, 0, 0);
+        gbc.gridx = 1; gbc.gridy = 0;
+        JTextField usernameField = new JTextField(20);
+        page.add(usernameField, gbc);
+
+        addComponent(page, createLabel("密码："), gbc, 0, 1);
+        gbc.gridx = 1; gbc.gridy = 1;
+        JPasswordField passwordField = new JPasswordField(20);
+        page.add(passwordField, gbc);
+
+        addComponent(page, createLabel("密码确认："), gbc, 0, 2);
+        gbc.gridx = 1; gbc.gridy = 2;
+        JPasswordField passwordFieldAgain = new JPasswordField(20);
+        page.add(passwordFieldAgain, gbc);
+
+        addComponent(page, createLabel("邮箱："), gbc, 0, 3);
+        gbc.gridx = 1; gbc.gridy = 3;
+        JTextField emailField = new JTextField(20);
+        page.add(emailField, gbc);
+
+        addComponent(page, createButton("注册为管理员", e -> {
+            String userName = usernameField.getText();
+            String passWord = new String(passwordField.getPassword());
+            String passWordAgain = new String(passwordFieldAgain.getPassword());
+            String email = emailField.getText();
+
+            if (!isValidEmail(email)) {
+                JOptionPane.showMessageDialog(this, "无效的邮箱");
+                return;
+            }
+
+            if (isUserExists(ADMIN_FILE_PATH, userName)) {
+                JOptionPane.showMessageDialog(this, "用户已存在！");
+            } else {
+                if (passWordAgain.equals(passWord)) {
+                    writeToFile(ADMIN_FILE_PATH, userName, email, passWord);
+                    cardLayout.show(panel, "page4");
+                } else {
+                    JOptionPane.showMessageDialog(this, "密码不一致！");
+                }
+            }
+        }), gbc, 0, 4);
+
+        addComponent(page, createButton("注册成为会员", e -> {
+            String userName = usernameField.getText();
+            String passWord = new String(passwordField.getPassword());
+            String passWordAgain = new String(passwordFieldAgain.getPassword());
+            String email = emailField.getText();
+
+            if (!isValidEmail(email)) {
+                JOptionPane.showMessageDialog(this, "无效的邮箱");
+                return;
+            }
+
+            if (isUserExists(USER_FILE_PATH, userName)) {
+                JOptionPane.showMessageDialog(this, "用户已存在！");
+            } else {
+                if (passWordAgain.equals(passWord)) {
+                    writeToFile(USER_FILE_PATH, userName, email, passWord);
+                    cardLayout.show(panel, "page5");
+                } else {
+                    JOptionPane.showMessageDialog(this, "密码不一致！");
+                }
+            }
+        }), gbc, 0, 5);
+
+        addComponent(page, createButton("退出", e -> System.exit(0)), gbc, 1, 4);
+        return page;
+    }
+
+    private JPanel createPage4() {
+        //管理员操作界面
+        JPanel page = new BackgroundPanel();
+        page.setLayout(new GridBagLayout());
+        GridBagConstraints gbc = createGbc();
+
+        addComponent(page,createButton("添加书籍",e -> { cardLayout.show(panel, "page6");}),gbc,0,1);
+        addComponent(page,createButton("添加副本",e -> { cardLayout.show(panel, "page7");}),gbc,0,2);
+        addComponent(page,createButton("删除书籍",e -> { cardLayout.show(panel, "page8");}),gbc,1,1);
+        addComponent(page,createButton("删除副本",e -> { cardLayout.show(panel, "page9");}),gbc,1,2);
+        addComponent(page,createButton("查询书籍",e -> { cardLayout.show(panel, "page12");}), gbc, 0, 3);
+        addComponent(page,createButton("退出", e -> System.exit(0)), gbc, 1, 3);
+        return page;
+    }
+
+    private JPanel createPage5() {
+        //用户操作界面
+        JPanel page = new BackgroundPanel();
+        page.setLayout(new GridBagLayout());
+        GridBagConstraints gbc = createGbc();
+
+        addComponent(page,createButton("借阅图书",e -> { cardLayout.show(panel, "page10");}),gbc,0,1);
+        addComponent(page,createButton("归还图书",e -> { cardLayout.show(panel, "page11");}),gbc,1,1);
+        addComponent(page,createButton("查询书籍",e -> { cardLayout.show(panel, "page12");}), gbc, 0, 2);
+        addComponent(page,createButton("退出", e -> System.exit(0)), gbc, 1, 2);
+        return page;
+    }
+
+    private JPanel createPage6() {
+        //添加书籍界面
+        JPanel page = new BackgroundPanel();
+        page.setLayout(new GridBagLayout());
+        GridBagConstraints gbc = createGbc();
+
+        addComponent(page, createLabel("书籍标题："), gbc, 0, 0);
+        gbc.gridx = 1;gbc.gridy = 0;titleField = new JTextField(20);page.add(titleField,gbc);
+        String title = titleField.getText();
+        addComponent(page, createLabel("书籍作者："), gbc, 0, 1);
+        gbc.gridx = 1;gbc.gridy = 1;authorField = new JTextField(20);page.add(authorField,gbc);
+        String author = authorField.getText();
+        addComponent(page, createLabel("书籍ISBN码："), gbc, 0, 2);
+        gbc.gridx = 1;gbc.gridy = 2;ISBNField = new JTextField(20);page.add(ISBNField,gbc);
+        String ISBN = ISBNField.getText();
+        if (isISBNExists("C:\\Users\\34975\\IdeaProjects\\project UI\\Library.zip\\总库.txt",ISBN)){
+            JOptionPane.showMessageDialog(this,"已有该书籍，请重新填写");
+        }
+        if (isValidISBN(ISBN)){
+            JOptionPane.showMessageDialog(this,"无效的ISBN码");
+        }
+        String[] options = {"文学类", "社会科学类", "自然科学类","技术类","艺术类","生活类"};
+        JComboBox<String> comboBox = new JComboBox<>(options);
+        comboBox.setBounds(2,0,3,1);
+        page.add(comboBox);
+        addComponent(page, createLabel("出版年份："), gbc, 0, 3);
+        gbc.gridx = 1;gbc.gridy = 3;yearField = new JTextField(20);page.add(yearField,gbc);
+        String year = yearField.getText();
+        addComponent(page, createButton("返回上一页", e -> {
+            cardLayout.show(panel, "page4");
+        }),gbc,0,4);
+        addComponent(page, createButton("退出",e -> System.exit(0)),gbc,1,4);
+
+        comboBox.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String selectedOption = (String) comboBox.getSelectedItem();
+                switch (selectedOption) {
+                    case "文学类":
+                        Book book = new Book(title,author,ISBN,year,"文学类");
+                        book.setId();
+                        book.addBook("C:\\Users\\34975\\IdeaProjects\\project UI\\Library.zip\\Literature.txt");
+                        break;
+                    case "社会科学类":
+                        Book book1 = new Book(title,author,ISBN,year,"社会科学类");
+                        book1.setId();
+                        book1.addBook("C:\\Users\\34975\\IdeaProjects\\project UI\\Library.zip\\Social Sciences.txt");
+                        break;
+                    case "自然科学类":
+                        Book book2 = new Book(title,author,ISBN,year,"自然科学类");
+                        book2.setId();
+                        book2.addBook("C:\\Users\\34975\\IdeaProjects\\project UI\\Library.zip\\Natural Sciences.txt");
+                        break;
+                    case "技术类":
+                        Book book3 = new Book(title,author,ISBN,year,"技术类");
+                        book3.setId();
+                        book3.addBook("C:\\Users\\34975\\IdeaProjects\\project UI\\Library.zip\\Technology.txt");
+                        break;
+                    case "艺术类":
+                        Book book4 = new Book(title,author,ISBN,year,"艺术类");
+                        book4.setId();
+                        book4.addBook( "C:\\Users\\34975\\IdeaProjects\\project UI\\Library.zip\\Arts.txt");
+                        break;
+                    case "生活类":
+                        Book book5 = new Book(title,author,ISBN,year,"生活类");
+                        book5.setId();
+                        book5.addBook( "C:\\Users\\34975\\IdeaProjects\\project UI\\Library.zip\\Lifestyle.txt");
+                        break;
+                }
+            }
+        });
+        return page;
+    }
+
+    private JPanel createPage7() {
+        //添加副本界面
+        JPanel page = new BackgroundPanel();
+        page.setLayout(new GridBagLayout());
+        GridBagConstraints gbc = createGbc();
+
+        addComponent(page, createLabel("ISBN码："), gbc, 0, 0);
+        gbc.gridx = 1;gbc.gridy = 0;ISBNField = new JTextField(20);page.add(ISBNField,gbc);
+        String ISBN = ISBNField.getText();
+        addComponent(page, createLabel("条形码："), gbc, 0, 1);
+        gbc.gridx = 1;gbc.gridy = 1;numberField = new JTextField(20);page.add(numberField,gbc);
+        String number = numberField.getText();
+        addComponent(page, createButton("返回上一页", e -> {
+            cardLayout.show(panel, "page4");
+        }),gbc,0,3);
+        addComponent(page, createButton("退出",e -> System.exit(0)),gbc,1,3);
+        return page;
+    }
+
+    private JPanel createPage8() {
+        //删除书籍界面
+        JPanel page = new BackgroundPanel();
+        page.setLayout(new GridBagLayout());
+        GridBagConstraints gbc = createGbc();
+
+        addComponent(page, createLabel("ISBN码："), gbc, 0, 0);
+        gbc.gridx = 1;gbc.gridy = 0;ISBNField = new JTextField(20);page.add(ISBNField,gbc);
+        String ISBN = ISBNField.getText();
+        addComponent(page, createButton("返回上一页", e -> {
+            cardLayout.show(panel, "page4");
+        }),gbc,0,3);
+        addComponent(page, createButton("退出",e -> System.exit(0)),gbc,1,3);
+
+        return page;
+    }
+
+    private JPanel createPage9() {
+        //删除副本界面
+        JPanel page = new BackgroundPanel();
+        page.setLayout(new GridBagLayout());
+        GridBagConstraints gbc = createGbc();
+
+        addComponent(page, createLabel("条形码："), gbc, 0, 1);
+        gbc.gridx = 1;gbc.gridy = 1;numberField = new JTextField(12);page.add(numberField,gbc);
+        String number = numberField.getText();
+        addComponent(page, createButton("返回上一页", e -> {
+            cardLayout.show(panel, "page4");
+        }),gbc,0,3);
+        addComponent(page, createButton("退出",e -> System.exit(0)),gbc,1,3);
+
+        return page;
+    }
+
+    private JPanel createPage10() {
+        //借阅图书界面
+        JPanel page = new BackgroundPanel();
+        page.setLayout(new GridBagLayout());
+        GridBagConstraints gbc = createGbc();
+
+        return page;
+    }
+
+    private JPanel createPage11() {
+        //归还图书界面
+        JPanel page = new BackgroundPanel();
+        page.setLayout(new GridBagLayout());
+        GridBagConstraints gbc = createGbc();
+
+        return page;
+    }
+
+    private JPanel createPage12() {
+        //查找图书界面
+        JPanel page = new BackgroundPanel();
+        page.setLayout(new GridBagLayout());
+        GridBagConstraints gbc = createGbc();
+
+        gbc.gridx = 0;gbc.gridy = 0;searchField = new JTextField(12);page.add(searchField,gbc);
+        String search = searchField.getText();
+        String[] options = {"标题检索", "作者检索"};
+        JComboBox<String> comboBox = new JComboBox<>(options);
+        page.add(comboBox);
+        comboBox.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String selectedOption = (String) comboBox.getSelectedItem();
+                switch (selectedOption) {
+                    case "标题检索":
+                        Book book = new Book();
+                        book.setTitle(search);
+                        book.SearchBooks();
+                        break;
+                    case "作者检索":
+                        book = new Book();
+                        book.setAuthor(search);
+                        book.SearchBooks();
+                        break;
+                }
+            }
+        });
+
+        return page;
+    }
+
+
+
+
+
+
+
+
+    private JLabel createLabel(String text) {
+        JLabel label = new JLabel(text);
+        label.setFont(new Font("Sim Sun", Font.PLAIN, 30));
+        return label;
+    }
+
+    private JButton createButton(String text, ActionListener actionListener) {
+        return createButton(text, actionListener, new Font("Sim Sun", Font.PLAIN, 30), new Dimension(300, 40));
+    }
+
+    private JButton createButton1(String text, ActionListener actionListener) {
+        return createButton(text, actionListener, new Font("Sim Sun", Font.PLAIN, 30), new Dimension(100, 40));
+    }
+
+    private JButton createButton(String text, ActionListener actionListener, Font font, Dimension dimension) {
+        JButton button = new JButton(text);
+        button.setFont(font);
+        button.setPreferredSize(dimension);
+        button.addActionListener(actionListener);
+        return button;
+    }
+
+    private JComboBox<String> createComboBox(String[] items) {
+        return new JComboBox<>(items);
+    }
+
+    private GridBagConstraints createGbc() {
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(20, 20, 20, 20);
+        gbc.anchor = GridBagConstraints.WEST;
+        return gbc;
+    }
+
+    private static boolean validateUser(String filePath, String username, String password) throws FileNotFoundException {
+        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split(",");
+                if (parts.length == 2 && parts[0].trim().equals(username) && parts[1].trim().equals(password)) {
+                    return true;
+                }
+            }
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(null, "读取文件时出现错误: " + e.getMessage());
+        }
+        return false;
+    }
+
+    private boolean isUserExists(String filePath, String username) {
+        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split(",");
+                if (parts.length == 3 && parts[0].trim().equals(username)) {
+                    return true;
+                }
+            }
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(this, "读取文件时出现错误: " + e.getMessage());
+        }
+        return false;
+    }
+
+    public void writeToFile(String filePath, String userName, String email, String userPassword) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath, true))) {
+            writer.write(userName + "," + email + "," + userPassword);
+            writer.newLine();
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(this, "写入文件时出现错误: " + e.getMessage());
+        }
+    }
+
+    private boolean isISBNExists(String filePath, String ISBN) {
+        //检验ISBN码是否已经存在的方法
+        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split(",");
+                if (parts.length == 6 && parts[2].trim().equals(ISBN)) {
+                    return false;
+                }
+            }
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(this,"出现错误");
+        }
+        return true;
+    }
+
+    private void addComponent(JPanel panel, JComponent component, GridBagConstraints gbc, int x, int y) {
+        addComponent(panel, component, gbc, x, y, 1);
+    }
+
+    private void addComponent(JPanel panel, JComponent component, GridBagConstraints gbc, int x, int y, int width) {
+        gbc.gridx = x;
+        gbc.gridy = y;
+        gbc.gridwidth = width;
+        panel.add(component, gbc);
+    }
+
+    public static int countNonEmptyLines(String aClass) throws IOException {
+        //这是一个用来检测文档中有多少个行有内容的方法，我用它来检测书库里总共有多少本书
+        int nonEmptyLineCount = 0;
+        switch (aClass) {
+            case "艺术类": {
+                String filePath = "C:\\Users\\34975\\IdeaProjects\\project UI\\Library.zip\\Arts.txt";
+                try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        if (!line.trim().isEmpty()) {
+                            nonEmptyLineCount++;
+                        }
+                    }
+                }break;
+            }
+            case "生活类": {
+                String filePath = "C:\\Users\\34975\\IdeaProjects\\project UI\\Library.zip\\Lifestyle.txt";
+                try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        if (!line.trim().isEmpty()) {
+                            nonEmptyLineCount++;
+                        }
+                    }
+                }break;
+            }
+            case "文学类": {
+                String filePath = "C:\\Users\\34975\\IdeaProjects\\project UI\\Library.zip\\Literature.txt";
+                try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        if (!line.trim().isEmpty()) {
+                            nonEmptyLineCount++;
+                        }
+                    }
+                }break;
+            }
+            case "自然科学类": {
+                String filePath = "C:\\Users\\34975\\IdeaProjects\\project UI\\Library.zip\\Natural Sciences.txt";
+                try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        if (!line.trim().isEmpty()) {
+                            nonEmptyLineCount++;
+                        }
+                    }
+                }break;
+            }
+            case "社会科学类": {
+                String filePath = "C:\\Users\\34975\\IdeaProjects\\project UI\\Library.zip\\Social Sciences.txt";
+                try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        if (!line.trim().isEmpty()) {
+                            nonEmptyLineCount++;
+                        }
+                    }
+                }break;
+            }
+            case "科技类": {
+                String filePath = "C:\\Users\\34975\\IdeaProjects\\project UI\\Library.zip\\Technology.txt";
+                try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        if (!line.trim().isEmpty()) {
+                            nonEmptyLineCount++;
+                        }
+                    }
+                }break;
+            }
+        }
+        return nonEmptyLineCount;
+    }
+
+    public static boolean isValidISBN(String isbn) {
+        // Validate ISBN
+        Pattern isbn10Pattern = Pattern.compile(ISBN10_REGEX);
+        Pattern isbn13Pattern = Pattern.compile(ISBN13_REGEX);
+        Matcher isbn10Matcher = isbn10Pattern.matcher(isbn);
+        Matcher isbn13Matcher = isbn13Pattern.matcher(isbn);
+        return isbn10Matcher.matches() || isbn13Matcher.matches();
+    }
+
+    public static boolean isValidEmail(String email) {
+        // Validate email
+        Pattern emailPattern = Pattern.compile(EMAIL_REGEX);
+        Matcher emailMatcher = emailPattern.matcher(email);
+        return emailMatcher.matches();
+    }
+
+    public static class Book {
+        private static String title;
+        private static String author;
+        private static String ISBN;
+        private static String pubYear;
+        private static String aClass;
+        private static int id;
+
+        public String getPubYear() {
+            return pubYear;
+        }
+
+        public int getId() {
+            return id;
+        }
+
+        public String getAuthor() {
+            return author;
+        }
+
+        public String getTitle() {
+            return title;
+        }
+
+        public void setAuthor(String author) {
+            Book.author = author;
+        }
+
+        public void setClass(String aClass) {
+            Book.aClass = aClass;
+        }
+
+        public void setId() {
+            try {
+                Book.id = Users.countNonEmptyLines(aClass)+1;
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            ;
+        }
+
+        public void setISBN(String ISBN) {
+            Book.ISBN = ISBN;
+        }
+
+        public void setTitle(String title) {
+            Book.title = title;
+        }
+
+        public void setPubYear(String pubYear) {
+            Book.pubYear = pubYear;
+        }
+
+        public String getISBN() {
+            return ISBN;
+        }
+
+        public Book(){
+            ;
+        }//book的默认定义
+        public Book(String title, String author, String ISBN, String year, String Class){
+            Book.title = title;
+            Book.author = author;
+            Book.ISBN = ISBN;
+            Book.pubYear = year;
+            Book.aClass = Class;
+        }
+        public static void addBook(String filePath) {
+            writeToFile(filePath);
+            writeToFile("C:\\Users\\34975\\IdeaProjects\\project UI\\Library.zip\\总库.txt");
+            System.out.println("书籍添加成功！");
+        }
+        public static void addBook(String filePath,int num) {//因为副本的存在，因此加入了需要添加几本书籍，除了第一本都会加入副本库
+            for(int i = 0;i<num;i++) {
+                writeToFile(filePath);
+                writeToFile("C:\\Users\\34975\\IdeaProjects\\project UI\\Library.zip\\总库.txt");
+                System.out.println("书籍添加成功！");
+            }
+            for(int i = 1;i<num;i++){
+                writeToFile("C:\\Users\\34975\\IdeaProjects\\project UI\\Library.zip\\总库.txt");
+            }
+        }
+        public void SearchBooks() {//在总库中检索书籍，并且按照提供的分区代码输出在哪个区域的哪一个书架上的位置
+            String filePath = "C:\\Users\\34975\\IdeaProjects\\project UI\\Library.zip\\总库.txt";
+            try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    String[] parts = line.split(",");
+                    if(parts[0].equals(title)){
+                        int shelf = (Integer.parseInt(parts[4])-1)/50+1;
+                        int relative = (Integer.parseInt(parts[4])-1)/50;
+                        int row = relative/10 + 1;
+                        int locate = relative%10 + 1;
+                        System.out.println(parts[5]+" 第 " + shelf + " 架 第 " + row + " 排 第 " + locate+" 个 "+parts[0]+" "+parts[2]);
+                    }else if (parts[1].equals(author)) {
+                        int shelf = (Integer.parseInt(parts[4])-1)/50+1;
+                        int relative = (Integer.parseInt(parts[4])-1)/50;
+                        int row = relative/10 + 1;
+                        int locate = relative%10 + 1;
+                        System.out.println(parts[5]+" 第 " + shelf + " 架 第 " + row + " 排 第 " + locate+" 个 "+parts[0]+" "+parts[2]);
+                    }else if (parts[3].equals(ISBN)){
+                        int shelf = (Integer.parseInt(parts[4])-1)/50+1;
+                        int relative = (Integer.parseInt(parts[4])-1)/50;
+                        int row = relative/10 + 1;
+                        int locate = relative%10 + 1;
+                        System.out.println(parts[5]+" 第 " + shelf + " 架 第 " + row + " 排 第 " + locate+" 个 "+parts[0]+" "+parts[2]);
+
+                    }
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        public static void writeToFile(String filePath) {//这里也有个写入文件，但是会在book对象已经被定义的时候使用
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath, true))) {
+                writer.write(title + "," + author + "," + ISBN + "," + pubYear + "," + id + "," +aClass);
+                writer.newLine();
+            } catch (IOException e) {
+                System.out.println("写入文件时出现错误：" + e.getMessage());
+            }
+        }
+
+        public static void BorrowBooks() {//正在做的借书，只是把总库中的该书目删除，其实应该把它转移到另一个已借阅文件更好
+
+            String filePath = "C:\\Users\\34975\\IdeaProjects\\project UI\\Library.zip\\总库.txt";
+            Path path = Paths.get(filePath);
+            Path tempPath = Paths.get(filePath + ".tmp");
+
+            boolean found = false;
+
+            try (BufferedReader reader = new BufferedReader(new FileReader(filePath));
+                 BufferedWriter writer = Files.newBufferedWriter(tempPath, StandardOpenOption.CREATE, StandardOpenOption.WRITE)) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    String[] parts = line.split(",");
+                    if (parts[0].equalsIgnoreCase(title) || parts[3].equalsIgnoreCase(ISBN)) {
+                        found = true;
+                        // 跳过不写入临时文件，相当于删除该行
+                    } else {
+                        writer.write(line);
+                        writer.newLine();
+                    }
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+
+            try {
+                Files.delete(path);
+                Files.move(tempPath, path);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+
+            if (found) {
+                System.out.println("图书已借阅！");
+            } else {
+                System.out.println("未找到匹配的图书。");
+            }
+        }
+
+        public static void DeleteBooks() {//删除书目，管理员的权限，把所有的同名书目都删除，但是可能后期需要调整一下剩下书目的编码
+            List<String> filePaths = new ArrayList<>();
+            filePaths.add("C:\\Users\\34975\\IdeaProjects\\project UI\\Library.zip\\总库.txt");
+            filePaths.add("C:\\Users\\34975\\IdeaProjects\\project UI\\Library.zip\\副本.txt");
+            filePaths.add("C:\\Users\\34975\\IdeaProjects\\project UI\\Library.zip\\Arts.txt");
+            filePaths.add("C:\\Users\\34975\\IdeaProjects\\project UI\\Library.zip\\Literature.txt");
+            filePaths.add("C:\\Users\\34975\\IdeaProjects\\project UI\\Library.zip\\Social Sciences.txt");
+            filePaths.add("C:\\Users\\34975\\IdeaProjects\\project UI\\Library.zip\\Natural Sciences.txt");
+            filePaths.add("C:\\Users\\34975\\IdeaProjects\\project UI\\Library.zip\\Technology.txt");
+            filePaths.add("C:\\Users\\34975\\IdeaProjects\\project UI\\Library.zip\\Lifestyle.txt");
+            boolean found = false;
+            for (String filePath : filePaths) {
+                Path path = Paths.get(filePath);
+                Path tempPath = Paths.get(filePath + ".tmp");
+                try (BufferedReader reader = new BufferedReader(new FileReader(filePath));
+                     BufferedWriter writer = Files.newBufferedWriter(tempPath, StandardOpenOption.CREATE, StandardOpenOption.WRITE)) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        String[] parts = line.split(",");
+                        if (parts[0].equalsIgnoreCase(title) || parts[3].equalsIgnoreCase(ISBN)) {
+                            found = true;
+                            // 跳过不写入临时文件，相当于删除该行
+                        } else {
+                            writer.write(line);
+                            writer.newLine();
+                        }
+                    }
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                try {
+                    Files.delete(path);
+                    Files.move(tempPath, path);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+    }
+
+    public static class Admin {
+        public static void adminMenu(Scanner scanner) {
+            boolean ctrl = true;
+            while (ctrl) {
+                System.out.println("1. 添加书籍");
+                System.out.println("2. 删除书籍");
+                System.out.println("3. 退出管理员菜单");
+                System.out.print("请选择操作：");
+                String choice = scanner.nextLine();
+                switch (choice) {
+                    case "1":
+                        System.out.println("请输入书名");
+                        String title = scanner.nextLine();
+                        System.out.println("请输入作者");
+                        String author = scanner.nextLine();
+                        System.out.println("请输入ISBN码");
+                        String ISBN = scanner.nextLine();
+                        System.out.println("请输入发布年份");
+                        String pubYear = scanner.nextLine();
+                        System.out.println("请输入添加本数：");
+                        int num = scanner.nextInt();
+                        System.out.println("请选择书籍类别：");
+                        System.out.println("1. 文学类");
+                        System.out.println("2. 社会科学类");
+                        System.out.println("3. 自然科学类");
+                        System.out.println("4. 技术类");
+                        System.out.println("5. 艺术类");
+                        System.out.println("6. 生活类");
+                        System.out.print("请选择操作：");
+                        String choice1 = scanner.nextLine();//添加书籍需要输入类别方便存放到特定文档
+                        switch (choice1) {
+                            case "1":
+                                Book book = new Book(title,author,ISBN,pubYear,"文学类");
+                                book.setId();
+                                Book.addBook("C:\\Users\\34975\\IdeaProjects\\project UI\\Library.zip\\Literature.txt",num);
+                                break;
+                            case "2":
+                                book = new Book(title, author, ISBN, pubYear, "文学类");
+                                book.setId();
+                                Book.addBook("C:\\Users\\34975\\IdeaProjects\\project UI\\Library.zip\\Social Sciences.txt",num);
+                                break;
+                            case "3":
+                                book = new Book(title, author, ISBN, pubYear, "自然科学类");
+                                book.setId();
+                                Book.addBook("C:\\Users\\34975\\IdeaProjects\\project UI\\Library.zip\\Natural Sciences.txt",num);
+                                break;
+                            case "4":
+                                book = new Book(title, author, ISBN, pubYear, "技术类");
+                                book.setId();
+                                Book.addBook("C:\\Users\\34975\\IdeaProjects\\project UI\\Library.zip\\Technology.txt",num);
+                                break;
+                            case "5":
+                                book = new Book(title, author, ISBN, pubYear, "艺术类");
+                                book.setId();
+                                Book.addBook( "C:\\Users\\34975\\IdeaProjects\\project UI\\Library.zip\\Arts.txt",num);
+                                break;
+                            case "6":
+                                book = new Book(title, author, ISBN, pubYear, "生活类");
+                                book.setId();
+                                Book.addBook( "C:\\Users\\34975\\IdeaProjects\\project UI\\Library.zip\\Lifestyle.txt",num);
+                                break;
+                        }
+                        break;
+                    case "2":
+                        System.out.println("请选择要删除的书籍名称");
+                        String title1 = scanner.nextLine();
+                        Book book = new Book();
+                        book.setTitle(title1);//给book对象填充title
+                        Book.DeleteBooks();//调用book的删除方法
+                        System.out.println("图书已删除！");
+                    case "3":
+                        ctrl = false;
+                        break;
+                    default:
+                        System.out.println("无效的选择，请重新输入。");
+                }
+            }
+        }
+    }
+    class BackgroundPanel extends JPanel {
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            g.drawImage(backgroundImage.getImage(), 0, 0, getWidth(), getHeight(), this);
+        }
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(MyFrame::new);
+    }
+}
